@@ -1,43 +1,56 @@
 ####################################################################################################
-## Builder
+## Builder: baut die govee-Binary aus dem Source im Repo
 ####################################################################################################
-FROM --platform=$BUILDPLATFORM alpine:latest AS builder
+FROM --platform=$BUILDPLATFORM rust:1.81-bullseye AS builder
 ARG TARGETPLATFORM
 
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "1000" \
-    "govee"
-
-WORKDIR /work
-COPY docker-target/$TARGETPLATFORM/govee /work
-
-# Creates an empty /data dir that we can use to copy and chown in the next stage
-WORKDIR /data
-
-####################################################################################################
-## Final image
-####################################################################################################
-FROM gcr.io/distroless/cc-debian12
-
-# Import from builder.
-COPY --from=builder /etc/passwd /etc/passwd
-COPY --from=builder /etc/group /etc/group
-#COPY --from=builder /etc/ssl/certs /etc/ssl/certs
+# Benutzer anlegen (UID 1000 wie vorher)
+RUN useradd -u 1000 -m govee
 
 WORKDIR /app
 
-COPY --from=builder /work/govee /app/govee
-COPY AmazonRootCA1.pem /app
+# Build-Abhängigkeiten (für TLS/HTTPS usw.)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      pkg-config \
+      libssl-dev \
+      ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Source-Code ins Build-Image kopieren
+COPY Cargo.toml Cargo.lock ./
+COPY build.rs ./
+COPY src ./src
+COPY assets ./assets
+COPY AmazonRootCA1.pem ./
+
+# Release-Build der govee-Binary
+RUN cargo build --release -p govee
+
+# /data-Verzeichnis vorbereiten (wie vorher)
+RUN mkdir -p /data && chown govee:govee /data
+
+####################################################################################################
+## Final image: schlankes Laufzeit-Image
+####################################################################################################
+FROM gcr.io/distroless/cc-debian12
+
+# Benutzer/Gruppe aus Builder übernehmen
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
+
+WORKDIR /app
+
+# frisch gebaute Binary verwenden
+COPY --from=builder /app/target/release/govee /app/govee
+COPY --from=builder /app/AmazonRootCA1.pem /app/
+COPY --from=builder /app/assets /app/assets
 COPY --from=builder --chown=govee:govee /data /data
-COPY assets /app/assets
 
 USER govee:govee
-LABEL org.opencontainers.image.source="https://github.com/wez/govee2mqtt"
+
+LABEL org.opencontainers.image.source="https://github.com/plutomond/govee2mqtt"
+
 ENV \
   RUST_BACKTRACE=full \
   PATH=/app:$PATH \
@@ -50,5 +63,3 @@ CMD ["/app/govee", \
   "--govee-iot-key=/data/iot.key", \
   "--govee-iot-cert=/data/iot.cert", \
   "--amazon-root-ca=/app/AmazonRootCA1.pem"]
-
-
