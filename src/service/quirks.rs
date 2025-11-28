@@ -179,6 +179,10 @@ fn load_quirks() -> HashMap<String, Quirk> {
         // Without this quirk, the LAN API fallback reports (2000, 9000) which causes issues
         // <https://github.com/wez/govee2mqtt/pull/502>
         Quirk::lan_api_capable_light("H60A1", CEILING).with_color_temp_range(2200, 6500),
+
+        // H60A1 Govee Ceiling Light has a color temperature range of 2700K - 6500K
+        Quirk::lan_api_capable_light("H60A6", CEILING).with_color_temp_range(2700, 6500),
+        
         // Color temperature is more restrictive than the fallback range
         // <https://github.com/wez/govee2mqtt/issues/511>
         Quirk::lan_api_capable_light("H6022", BULB).with_color_temp_range(2700, 6500),
