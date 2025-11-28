@@ -1,7 +1,7 @@
 name: Govee to MQTT Bridge
 version: "2025.11.25-60a39bcc"
 slug: govee2mqtt
-description: Control Govee Devices (with H60A6 quirk)
+description: Control Govee Devices (my fork)
 url: https://github.com/plutomond/govee2mqtt
 arch:
   - amd64
