@@ -1,3 +1,3 @@
-name: Govee to MQTT Bridge
-url: https://github.com/wez/govee2mqtt
+name: Govee to MQTT Bridge (my fork)
+url: https://github.com/plutomond/govee2mqtt
 maintainer: Wez Furlong <govee2mqtt@wez.wezfurlong.org>
