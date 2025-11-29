@@ -1,31 +1,32 @@
+# ----------------------------------------
+# Auto: Pull → Build → Install → Commit → Push
+# ----------------------------------------
 
-check:
-	cargo check
+BINARY=target/x86_64-unknown-linux-musl/release/govee
+ADDON_BIN=addon/bin/govee
+COMMIT_MSG="Auto-build: Update musl govee binary"
 
-test:
-	cargo nextest run
+.PHONY: pull build-musl install commit push update all
 
-fmt:
-	cargo +nightly fmt
+pull:
+	git fetch origin
+	git pull --rebase origin main
 
-docker:
-	docker build .
+build-musl:
+	cargo build --release -p govee --target x86_64-unknown-linux-musl
 
-addon:
-	docker run \
-		--rm \
-		--privileged \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		-v ./addon:/data \
-			ghcr.io/home-assistant/amd64-builder:latest \
-			--all \
-			--test \
-			--target /data
+install:
+	cp $(BINARY) $(ADDON_BIN)
+	chmod +x $(ADDON_BIN)
 
-# This will start hass on http://localhost:7123
-container:
-	npm install @devcontainers/cli
-	npx @devcontainers/cli up --workspace-folder .
-	npx @devcontainers/cli exec --workspace-folder . supervisor_run
+commit:
+	git add $(ADDON_BIN)
+	git commit -m $(COMMIT_MSG) || true
 
-.PHONY: addon fmt check hass
+push:
+	git push origin main
+
+update: pull build-musl install commit push
+	@echo "✔ Update abgeschlossen."
+
+all: update
