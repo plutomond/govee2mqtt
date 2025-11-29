@@ -1,5 +1,5 @@
 name: Govee to MQTT Bridge
-version: "2025.11.25-pluto-3"
+version: "2025.11.25-pluto-4"
 slug: govee2mqtt
 description: Control Govee Devices (my fork)
 url: https://github.com/plutomond/govee2mqtt
